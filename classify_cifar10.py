@@ -4,8 +4,11 @@ import torch.nn.functional as F
 import torch.optim as optim
 import pickle
 from torchvision import datasets, transforms
+from resnet18 import ResNet,ResidualBlock
+from vgg16 import VGG16
 
-BATCH_SIZE=4 # 批次大小
+
+BATCH_SIZE=10 # 批次大小
 EPOCHS=200 # 总共训练批次
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu") 
 
@@ -65,7 +68,9 @@ dict[3] = unpickle('Cifar/cifar-10-batches-py/data_batch_4')
 dict[4] = unpickle('Cifar/cifar-10-batches-py/data_batch_5')
 dict[5] = unpickle('Cifar/cifar-10-batches-py/test_batch')
 
-model = Net().to(DEVICE)
+#model = Net().to(DEVICE)
+model = ResNet(ResidualBlock).to(DEVICE)
+#model = VGG16().to(DEVICE)
 optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
 criterion = nn.CrossEntropyLoss()
 model.train()
@@ -73,7 +78,7 @@ model.train()
 def process_train(num):
     data = []
     target = []
-    for j in range(2500):
+    for j in range(1000):
         batch_data = []
         batch_target = []
         for i in range(BATCH_SIZE):
@@ -94,7 +99,7 @@ data4,target4 = process_train(4)
 test_data,test_target = process_train(5)
 
 def train(inputdata,inputtarget):
-    for i in range(2500):
+    for i in range(1000):
         batch_data = inputdata[i]
         batch_target = inputtarget[i]
         batch_target = torch.tensor(batch_target).to(DEVICE)
@@ -112,12 +117,12 @@ def train(inputdata,inputtarget):
         loss = criterion(out, target_t)
         loss.backward()
         optimizer.step() 
-        if i%500 ==0:
+        if i%1000 ==0:
             print(loss.item())
             
 
 
-for i in range(2):
+for i in range(20):
     train(data,target)
     train(data1,target1)
     train(data2,target2)
@@ -128,7 +133,7 @@ for i in range(2):
 
 model.eval()
 corrent_nums = 0
-for i in range(2500):
+for i in range(1000):
     batch_data = test_data[i]
     batch_target = test_target[i]
 #    print(batch_data)
