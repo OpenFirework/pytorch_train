@@ -9,7 +9,7 @@ from vgg16 import VGG16
 
 
 BATCH_SIZE=100 # 批次大小
-EPOCHS=200 # 总共训练批次
+EPOCHS=90 # 总共训练批次
 LR = 0.01 #学习率
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu") 
 
@@ -67,6 +67,10 @@ def set_lr(optimizer, new_lr):
     global cur_lr
     cur_lr = new_lr
 
+def print_lr(optimizer):
+    for param_group in optimizer.param_groups:
+        print(param_group['lr'])
+
 dict = [[],[],[],[],[],[]]
 
 dict[0] = unpickle('Cifar/cifar-10-batches-py/data_batch_1')
@@ -79,8 +83,8 @@ dict[5] = unpickle('Cifar/cifar-10-batches-py/test_batch')
 #model = Net().to(DEVICE)
 model = ResNet(ResidualBlock).to(DEVICE)
 #model = VGG16().to(DEVICE)
-optimizer = optim.SGD(model.parameters(), lr=LR, momentum=0.9, weight_decay=5e-4)
-scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=40, gamma=0.1)
+optimizer = optim.SGD(model.parameters(), lr=LR, momentum=0.9)
+scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5*30*(int(10000/BATCH_SIZE)), gamma=0.1) #每调用一次step()，step_size就会+1，学习率的衰减策略，要根据实际的迭代次数进行设置
 
 criterion = nn.CrossEntropyLoss()
 model.train()
@@ -108,6 +112,7 @@ data4,target4 = process_train(4)
 
 test_data,test_target = process_train(5)
 
+
 def train(inputdata,inputtarget):
     for i in range((int(10000/BATCH_SIZE))):
         batch_data = inputdata[i]
@@ -129,11 +134,14 @@ def train(inputdata,inputtarget):
         optimizer.step() 
         scheduler.step()
         if i%((int(10000/BATCH_SIZE))) ==0:
-            print(loss.item())
+            print('loss %.4f ' %loss.item())
+            print("lr: ")
+            print_lr(optimizer)
             
 
 
 for i in range(EPOCHS):
+    print(str(i)+'/'+str(EPOCHS))
     train(data,target)
     train(data1,target1)
     train(data2,target2)
