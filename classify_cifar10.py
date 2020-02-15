@@ -8,8 +8,9 @@ from resnet18 import ResNet,ResidualBlock
 from vgg16 import VGG16
 
 
-BATCH_SIZE=10 # 批次大小
+BATCH_SIZE=100 # 批次大小
 EPOCHS=200 # 总共训练批次
+LR = 0.01 #学习率
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu") 
 
 def unpickle(file):
@@ -59,6 +60,13 @@ class ConvNet(nn.Module):
         out = self.fc2(out)
         out = F.log_softmax(out,dim=1)
         return out 
+def set_lr(optimizer, new_lr):
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = new_lr
+    
+    global cur_lr
+    cur_lr = new_lr
+
 dict = [[],[],[],[],[],[]]
 
 dict[0] = unpickle('Cifar/cifar-10-batches-py/data_batch_1')
@@ -71,14 +79,16 @@ dict[5] = unpickle('Cifar/cifar-10-batches-py/test_batch')
 #model = Net().to(DEVICE)
 model = ResNet(ResidualBlock).to(DEVICE)
 #model = VGG16().to(DEVICE)
-optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
+optimizer = optim.SGD(model.parameters(), lr=LR, momentum=0.9, weight_decay=5e-4)
+scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=40, gamma=0.1)
+
 criterion = nn.CrossEntropyLoss()
 model.train()
 
 def process_train(num):
     data = []
     target = []
-    for j in range(1000):
+    for j in range((int(10000/BATCH_SIZE))):
         batch_data = []
         batch_target = []
         for i in range(BATCH_SIZE):
@@ -99,7 +109,7 @@ data4,target4 = process_train(4)
 test_data,test_target = process_train(5)
 
 def train(inputdata,inputtarget):
-    for i in range(1000):
+    for i in range((int(10000/BATCH_SIZE))):
         batch_data = inputdata[i]
         batch_target = inputtarget[i]
         batch_target = torch.tensor(batch_target).to(DEVICE)
@@ -117,12 +127,13 @@ def train(inputdata,inputtarget):
         loss = criterion(out, target_t)
         loss.backward()
         optimizer.step() 
-        if i%1000 ==0:
+        scheduler.step()
+        if i%((int(10000/BATCH_SIZE))) ==0:
             print(loss.item())
             
 
 
-for i in range(20):
+for i in range(EPOCHS):
     train(data,target)
     train(data1,target1)
     train(data2,target2)
@@ -133,7 +144,7 @@ for i in range(20):
 
 model.eval()
 corrent_nums = 0
-for i in range(1000):
+for i in range(int(10000/BATCH_SIZE)):
     batch_data = test_data[i]
     batch_target = test_target[i]
 #    print(batch_data)

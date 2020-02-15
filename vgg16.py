@@ -17,21 +17,21 @@ class VGG16(nn.Module):
         self.conv2_1 = nn.Conv2d(64, 128, 3) # 128 * 28 * 28
         self.bn2_1 = nn.BatchNorm2d(128)
 #        self.conv2_2 = nn.Conv2d(128, 128, 3, padding=(1, 1)) # 128 * 28 * 28
-#        self.maxpool2 = nn.MaxPool2d((2, 2), padding=(1, 1)) # pooling 128 * 56 * 56
+#        self.maxpool2 = nn.MaxPool2d((2, 2), padding=(1, 1)) # pooling 128 * 15 * 15
         
-        self.conv3_1 = nn.Conv2d(128, 256, 3) # 256 * 26 * 26
+        self.conv3_1 = nn.Conv2d(128, 256, 3) # 256 * 13 * 13
         self.bn3_1 = nn.BatchNorm2d(256)
-        self.conv3_2 = nn.Conv2d(256, 256, 3, padding=(1, 1)) # 256 * 26 * 26
+        self.conv3_2 = nn.Conv2d(256, 256, 3, padding=(1, 1)) # 256 * 13 * 13
         self.bn3_2 = nn.BatchNorm2d(256)
  #       self.conv3_3 = nn.Conv2d(256, 256, 3, padding=(1, 1)) # 256 * 26 * 26
 #        self.maxpool3 = nn.MaxPool2d((2, 2), padding=(1, 1)) # pooling 256 * 28 * 28
         
-        self.conv4_1 = nn.Conv2d(256, 512, 3) # 512 * 24 * 24
+        self.conv4_1 = nn.Conv2d(256, 512, 3) # 512 * 11 * 11
         self.bn4_1 = nn.BatchNorm2d(512)
   #      self.conv4_2 = nn.Conv2d(512, 512, 3, padding=(1, 1)) # 512 * 24 * 24
-        self.conv4_3 = nn.Conv2d(512, 512, 3, padding=(1, 1)) # 512 * 24 * 24
+        self.conv4_3 = nn.Conv2d(512, 512, 3, padding=(1, 1)) # 512 * 11 * 11
         self.bn4_3 = nn.BatchNorm2d(512)
-        self.maxpool4 = nn.MaxPool2d((2, 2), padding=(1, 1)) # pooling 512 * 13 * 13
+        self.maxpool4 = nn.MaxPool2d((2, 2), padding=(1, 1)) # pooling 512 * 6 * 13
         
         self.conv5_1 = nn.Conv2d(512, 512, 3) # 512 * 11 * 11
         self.bn5_1 = nn.BatchNorm2d(512)
