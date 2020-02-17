@@ -83,7 +83,7 @@ dict[5] = unpickle('Cifar/cifar-10-batches-py/test_batch')
 #model = Net().to(DEVICE)
 model = ResNet(ResidualBlock).to(DEVICE)
 #model = VGG16().to(DEVICE)
-optimizer = optim.SGD(model.parameters(), lr=LR, momentum=0.9)
+optimizer = optim.SGD(model.parameters(), lr=LR, momentum=0.9, weight_decay=5e-4)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5*30*(int(10000/BATCH_SIZE)), gamma=0.1) #每调用一次step()，step_size就会+1，学习率的衰减策略，要根据实际的迭代次数进行设置
 
 criterion = nn.CrossEntropyLoss()
