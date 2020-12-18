@@ -43,10 +43,15 @@ class VGG16(nn.Module):
         # view
         
         self.fc1 = nn.Linear(512 * 6 * 6, 360)
-#        self.fc2 = nn.Linear(4096, 4096)
+        self.drop1 = nn.Dropout2d()
+        self.fc2 = nn.Linear(360, 360)
+        self.drop2 = nn.Dropout2d()
         self.fc3 = nn.Linear(360, 10)
         # softmax 1 * 1 * 1000
-        
+    
+    def save_weights(self, path):
+        torch.save(self.state_dict(), path)
+
     def forward(self, x):
         
         # x.size(0)即为batch_size
@@ -100,8 +105,10 @@ class VGG16(nn.Module):
         
         out = self.fc1(out)
         out = F.relu(out)
-        #out = self.fc2(out)
-        #out = F.relu(out)
+        out = self.drop1(out)
+        out = self.fc2(out)
+        out = F.relu(out)
+        out = self.drop2(out)
         out = self.fc3(out)
 #        out = F.log_softmax(out, dim=1)
         return out

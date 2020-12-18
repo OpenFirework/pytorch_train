@@ -4,12 +4,12 @@ import torch.nn.functional as F
 import torch.optim as optim
 import pickle
 from torchvision import datasets, transforms
-from resnet18 import ResNet,ResidualBlock
 from vgg16 import VGG16
+import torchvision
 
 
 BATCH_SIZE=100 # 批次大小
-EPOCHS=90 # 总共训练批次
+EPOCHS=200 # 总共训练批次
 LR = 0.01 #学习率
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu") 
 
@@ -71,20 +71,11 @@ def print_lr(optimizer):
     for param_group in optimizer.param_groups:
         print(param_group['lr'])
 
-dict = [[],[],[],[],[],[]]
-
-dict[0] = unpickle('Cifar/cifar-10-batches-py/data_batch_1')
-dict[1] = unpickle('Cifar/cifar-10-batches-py/data_batch_2')
-dict[2] = unpickle('Cifar/cifar-10-batches-py/data_batch_3')
-dict[3] = unpickle('Cifar/cifar-10-batches-py/data_batch_4')
-dict[4] = unpickle('Cifar/cifar-10-batches-py/data_batch_5')
-dict[5] = unpickle('Cifar/cifar-10-batches-py/test_batch')
-
 #model = Net().to(DEVICE)
-model = ResNet(ResidualBlock).to(DEVICE)
-#model = VGG16().to(DEVICE)
+#model = ResNet(ResidualBlock).to(DEVICE)
+model = VGG16().to(DEVICE)
+#optimizer = optim.Adam(model.parameters(), lr=LR, betas=(0.9, 0.999), eps=1e-08, weight_decay=5e-4)
 optimizer = optim.SGD(model.parameters(), lr=LR, momentum=0.9, weight_decay=5e-4)
-scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5*30*(int(10000/BATCH_SIZE)), gamma=0.1) #每调用一次step()，step_size就会+1，学习率的衰减策略，要根据实际的迭代次数进行设置
 
 criterion = nn.CrossEntropyLoss()
 model.train()
@@ -104,78 +95,75 @@ def process_train(num):
         target.append(batch_target)
     return data,target
 
-data,target = process_train(0)
-data1,target1 = process_train(1)
-data2,target2 = process_train(2)
-data3,target3 = process_train(3)
-data4,target4 = process_train(4)
+train_transform = transforms.Compose(
+    [
+     transforms.RandomHorizontalFlip(),
+     transforms.RandomGrayscale(),
+     transforms.ToTensor(),
+     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
-test_data,test_target = process_train(5)
+train_dataset=torchvision.datasets.CIFAR10(root='data/',train=True,transform=train_transform,download=False)
 
 
-def train(inputdata,inputtarget):
-    for i in range((int(10000/BATCH_SIZE))):
-        batch_data = inputdata[i]
-        batch_target = inputtarget[i]
-        batch_target = torch.tensor(batch_target).to(DEVICE)
-        target_t = torch.tensor(batch_target)  
-        data_t = torch.tensor(batch_data)
-#        print(target_t)
-#        print(data_t.size())
-#       data_t = data_t.reshape(1,3,32,32)
-        data_t = data_t.to(DEVICE)
-        data_t = data_t.float()
-        data_t = data_t/255.0
-        data_t = (data_t - 0.5)/0.5
+test_transform = transforms.Compose(
+    [
+     transforms.ToTensor(),
+     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+
+
+test_dataset=torchvision.datasets.CIFAR10(root='data/',train=False,transform=test_transform,download=False)
+
+
+trainloader = torch.utils.data.DataLoader(train_dataset, batch_size=BATCH_SIZE,
+                                          shuffle=True, num_workers=2)
+testloader = torch.utils.data.DataLoader(test_dataset, batch_size=BATCH_SIZE,
+                                           shuffle=True, num_workers=2)
+scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=50*len(trainloader), gamma=0.1)
+
+print("trainloader len: ", len(train_dataset))
+print("testloader len: :", len(test_dataset))
+
+
+
+def train(trainloader):
+    model.train()
+    for i,data in enumerate(trainloader, 0):
+        batch_data, batch_target = data
+        batch_data, batch_target =batch_data.to(DEVICE), batch_target.to(DEVICE)
+
         optimizer.zero_grad()
-        out = model(data_t)
-        loss = criterion(out, target_t)
+        out = model(batch_data)
+        loss = criterion(out, batch_target)
         loss.backward()
-        optimizer.step() 
+        optimizer.step()
         scheduler.step()
         if i%((int(10000/BATCH_SIZE))) ==0:
-            print('loss %.4f ' %loss.item())
-            print("lr: ")
-            print_lr(optimizer)
-            
+            print('loss %.4f ' %loss.item(),"lr:", optimizer.param_groups[0]['lr'])
+
+def test(testloader):
+    model.eval()
+    corrent_nums = 0
+    total = 0
+    for i,data in enumerate(testloader, 0):
+        images, labels = data
+        images, labels = images.to(DEVICE), labels.to(DEVICE)
+        outputs = model(images)
+        _, predicted = torch.max(outputs.data, 1)
+        total += labels.size(0)
+        corrent_nums += (predicted == labels).sum().item()
+    print(corrent_nums, total)
+
+
 
 
 for i in range(EPOCHS):
     print(str(i)+'/'+str(EPOCHS))
-    train(data,target)
-    train(data1,target1)
-    train(data2,target2)
-    train(data3,target3)
-    train(data4,target4)
+    train(trainloader)
+    if i%10==0 and i!=0:
+        test(testloader)
+        model_name = "./weights/vgg11_dropout_" + str(i) + ".pth"
+        model.save_weights(model_name)
 
-
-
-model.eval()
-corrent_nums = 0
-for i in range(int(10000/BATCH_SIZE)):
-    batch_data = test_data[i]
-    batch_target = test_target[i]
-#    print(batch_data)
-    
-    batch_target = torch.tensor(batch_target).to(DEVICE)
-    target_t = torch.tensor(batch_target)
-    data_t = torch.tensor(batch_data)
-    data_t = data_t.to(DEVICE)
-    data_t = data_t.float()
-    data_t = data_t/255.0
-    data_t = (data_t - 0.5)/0.5
-    output = model(data_t)
-    _, predicted = torch.max(output.data, 1)
-    pred = output.max(1, keepdim=True)[1]
-    
-#    print(predicted)
-#    print(target_t)
-    corrent_nums  += (predicted == target_t).sum().item()
-#    for j in range(4):
-#        if predicted[j] == target_t[j]:
-#           corrent_nums = corrent_nums + 1
-
-print(corrent_nums)
 
 
 '''
